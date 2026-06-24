@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
-use App\Models\Seat;
+use App\Models\Room;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -12,23 +12,30 @@ class DashboardController extends Controller
     public function __invoke(Request $request): View
     {
         $user = $request->user()->load([
-            'residentProfile.branch',
-            'residentProfile.room',
-            'residentProfile.seat',
+            'activeRoomBooking.branch',
+            'activeRoomBooking.room',
+            'roomBookings' => fn ($query) => $query->with(['branch', 'room'])->latest()->limit(8),
             'payments' => fn ($query) => $query->latest('billing_month')->limit(8),
-            'seatChangeRequests' => fn ($query) => $query->with(['currentSeat.room.branch', 'requestedSeat.room.branch'])->latest()->limit(5),
-            'leaveApplications' => fn ($query) => $query->latest()->limit(5),
-            'exitRequests' => fn ($query) => $query->latest()->limit(3),
-            'hostelNotifications' => fn ($query) => $query->latest()->limit(8),
+            'roomChangeRequests' => fn ($query) => $query->with(['roomBooking.room.branch', 'currentRoom.branch', 'requestedRoom.branch'])->latest()->limit(8),
+            'leaveRequests' => fn ($query) => $query->with(['roomBooking.room.branch'])->latest()->limit(8),
+            'notifications' => fn ($query) => $query->latest()->limit(8),
         ]);
 
-        $availableSeats = Seat::query()
-            ->with('room.branch')
-            ->where('is_available', true)
-            ->when($user->residentProfile, fn ($query) => $query->whereKeyNot($user->residentProfile->seat_id))
+        $approvedBookings = $request->user()
+            ->roomBookings()
+            ->with(['branch', 'room'])
+            ->where('status', 'approved')
+            ->latest()
+            ->get();
+
+        $availableRooms = Room::query()
+            ->with('branch')
+            ->where('status', 'available')
             ->orderBy('monthly_rent')
             ->get();
 
-        return view('dashboard', compact('user', 'availableSeats'));
+        $section = $request->query('section', $user->activeRoomBooking ? 'overview' : 'booking');
+
+        return view('customer.dashboard', compact('user', 'availableRooms', 'approvedBookings', 'section'));
     }
 }

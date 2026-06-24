@@ -8,7 +8,8 @@ class Payment extends Model
 {
     protected $fillable = [
         'user_id',
-        'seat_id',
+        'room_booking_id',
+        'room_id',
         'invoice_no',
         'billing_month',
         'due_date',
@@ -47,8 +48,13 @@ class Payment extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function seat()
+    public function roomBooking()
     {
-        return $this->belongsTo(Seat::class);
+        return $this->belongsTo(RoomBooking::class);
+    }
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
     }
 }

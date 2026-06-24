@@ -1,6 +1,5 @@
 <x-guest-layout>
     <h1 class="text-2xl font-semibold">Create account</h1>
-    <p class="mt-1 text-sm text-zinc-500">Register your customer profile. Seat assignment is managed by hostel admin.</p>
 
     @if ($errors->any())
         <div class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ $errors->first() }}</div>
@@ -27,6 +26,10 @@
             </label>
         </div>
         <label class="block">
+            <span class="text-sm font-medium">Address</span>
+            <textarea name="address" rows="2" class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 focus:border-teal-600 focus:outline-none">{{ old('address') }}</textarea>
+        </label>
+        <label class="block">
             <span class="text-sm font-medium">Password</span>
             <input name="password" type="password" required class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 focus:border-teal-600 focus:outline-none">
         </label>
@@ -34,7 +37,7 @@
             <span class="text-sm font-medium">Confirm password</span>
             <input name="password_confirmation" type="password" required class="mt-1 w-full rounded-md border border-zinc-300 px-3 py-2 focus:border-teal-600 focus:outline-none">
         </label>
-        <button class="w-full rounded-md bg-teal-600 px-4 py-2 font-semibold text-white hover:bg-teal-700">Register</button>
+        <button class="w-full rounded-md bg-teal-600 cursor px-4 py-2 font-semibold text-white hover:bg-teal-700">Register</button>
     </form>
 
     <p class="mt-5 text-center text-sm text-zinc-500">

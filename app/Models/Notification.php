@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class HostelNotification extends Model
+class Notification extends Model
 {
     protected $fillable = ['user_id', 'title', 'body', 'type', 'read_at'];
 
@@ -13,5 +13,10 @@ class HostelNotification extends Model
         return [
             'read_at' => 'datetime',
         ];
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

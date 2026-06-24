@@ -16,7 +16,15 @@ const toast = (message, type = 'success') => {
 };
 
 const parseErrors = async (response) => {
-    const payload = await response.json().catch(() => ({}));
+    const text = await response.text();
+    let payload = {};
+
+    try {
+        payload = text ? JSON.parse(text) : {};
+    } catch {
+        return 'Server returned an HTML error page. Please refresh and try again.';
+    }
+
     if (payload.errors) {
         return Object.values(payload.errors).flat().join(' ');
     }
@@ -43,7 +51,8 @@ const submitAjaxForm = async (form) => {
         throw new Error(await parseErrors(response));
     }
 
-    return response.json();
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
 };
 
 document.querySelectorAll('form[data-ajax]').forEach((form) => {
@@ -80,63 +89,78 @@ document.querySelectorAll('form[data-ajax]').forEach((form) => {
     });
 });
 
-document.getElementById('seatSelect')?.addEventListener('change', async (event) => {
-    const preview = document.getElementById('seatPreview');
-    const seatId = event.target.value;
+const refreshRoomChangePreview = async () => {
+    const roomSelect = document.getElementById('roomSelect');
+    const bookingInput = document.getElementById('roomBookingSelect');
+    const preview = document.getElementById('roomPreview');
+    const bookingId = bookingInput?.value;
+    const roomId = roomSelect?.value;
 
     preview.classList.add('hidden');
     preview.innerHTML = '';
 
-    if (!seatId) {
+    if (!bookingId || !roomId) {
         return;
     }
 
-    const url = new URL(event.target.dataset.calculateUrl, window.location.origin);
-    url.searchParams.set('seat_id', seatId);
+    const url = new URL(roomSelect.dataset.calculateUrl, window.location.origin);
+    url.searchParams.set('room_booking_id', bookingId);
+    url.searchParams.set('room_id', roomId);
 
     const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!response.ok) {
+        const message = await parseErrors(response);
+        toast(message, 'error');
+        if (window.Swal) {
+            Swal.fire({ icon: 'error', title: 'Room change unavailable', text: message });
+        }
+        return;
+    }
     const data = await response.json();
 
     preview.innerHTML = `
         <div class="grid gap-2 sm:grid-cols-2">
-            <p><strong>Request type:</strong> ${data.type.replace('_', ' ')}</p>
             <p><strong>Requested:</strong> ${data.requested_label}</p>
-            <p><strong>Current rent:</strong> ${formatMoney(data.current_rent)}</p>
-            <p><strong>Requested rent:</strong> ${formatMoney(data.requested_rent)}</p>
-            <p><strong>Payable now:</strong> ${formatMoney(data.payable_amount)}</p>
-            <p><strong>Credit next rent:</strong> ${formatMoney(data.credit_to_next_rent)}</p>
+            <p><strong>System change date:</strong> ${data.change_date}</p>
+            <p><strong>Old rent:</strong> ${formatMoney(data.old_monthly_rent)}</p>
+            <p><strong>New rent:</strong> ${formatMoney(data.new_monthly_rent)}</p>
+            <p><strong>Remaining paid days:</strong> ${data.remaining_paid_days}</p>
+            <p><strong>Additional payable:</strong> ${formatMoney(data.additional_payable)}</p>
+            <p><strong>Extra days:</strong> ${data.extra_days}</p>
+            <p><strong>New paid until:</strong> ${data.new_paid_until}</p>
         </div>
     `;
     preview.classList.remove('hidden');
-});
+};
 
-document.getElementById('exitDate')?.addEventListener('change', async (event) => {
-    const preview = document.getElementById('exitPreview');
-    const exitDate = event.target.value;
+document.getElementById('roomSelect')?.addEventListener('change', refreshRoomChangePreview);
+document.getElementById('roomBookingSelect')?.addEventListener('change', refreshRoomChangePreview);
 
-    preview.classList.add('hidden');
-    preview.innerHTML = '';
+const syncLeaveDateRange = () => {
+    const bookingSelect = document.getElementById('leaveBookingSelect');
+    const leaveDateInput = document.getElementById('leaveDate');
+    const hint = document.getElementById('leaveDateHint');
+    const option = bookingSelect?.selectedOptions?.[0];
+    const start = option?.dataset.start || '';
+    const end = option?.dataset.end || '';
 
-    if (!exitDate) {
+    if (!leaveDateInput) {
         return;
     }
 
-    const url = new URL(event.target.dataset.calculateUrl, window.location.origin);
-    url.searchParams.set('requested_exit_date', exitDate);
+    leaveDateInput.value = '';
+    leaveDateInput.min = start;
+    leaveDateInput.max = end;
 
-    const response = await fetch(url, { headers: { Accept: 'application/json' } });
-    const data = await response.json();
+    if (hint) {
+        hint.textContent = start && end
+            ? `Allowed leave range: ${start} to ${end}.`
+            : 'Select a booking first. Leave dates must stay inside that booking range.';
+    }
+};
 
-    preview.innerHTML = `
-        <p><strong>Notice days:</strong> ${data.notice_days} (${data.notice_valid ? 'valid' : 'minimum 30 days required'})</p>
-        <p><strong>Rent due:</strong> ${formatMoney(data.rent_due)}</p>
-        <p><strong>Deposit adjustment:</strong> ${formatMoney(data.deposit_adjustment)}</p>
-        <p><strong>Balance adjustment:</strong> ${formatMoney(data.balance_adjustment)}</p>
-        <p><strong>Final payable:</strong> ${formatMoney(data.final_payable)}</p>
-        <p><strong>Final refundable:</strong> ${formatMoney(data.final_refundable)}</p>
-    `;
-    preview.classList.remove('hidden');
-});
+document.getElementById('leaveBookingSelect')?.addEventListener('change', syncLeaveDateRange);
+syncLeaveDateRange();
 
 const renderNotifications = (items = []) => {
     const list = document.getElementById('notificationList');

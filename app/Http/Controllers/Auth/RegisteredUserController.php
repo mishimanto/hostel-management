@@ -8,7 +8,7 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 
@@ -23,23 +23,25 @@ class RegisteredUserController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
             'nid_number' => ['nullable', 'string', 'max:80'],
+            'address' => ['nullable', 'string', 'max:1000'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $user = User::create([
             'name' => $data['name'],
-            'email' => $data['email'],
+            'email' => Str::lower($data['email']),
             'phone' => $data['phone'] ?? null,
             'nid_number' => $data['nid_number'] ?? null,
-            'password' => Hash::make($data['password']),
+            'address' => $data['address'] ?? null,
+            'password' => $data['password'],
         ]);
 
         event(new Registered($user));
         Auth::login($user);
 
-        return redirect()->route('dashboard')->with('status', 'Account created. Ask admin to assign a seat if it is not visible yet.');
+        return redirect()->route('customer.dashboard')->with('status', 'Account created. You can now request a room booking.');
     }
 }

@@ -1,19 +1,29 @@
 <?php
 
+use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\RoomController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Admin\AdminDashboardController;
+use App\Http\Controllers\Customer\BookingController;
 use App\Http\Controllers\Customer\DashboardController;
-use App\Http\Controllers\Customer\ExitRequestController;
-use App\Http\Controllers\Customer\LeaveApplicationController;
+use App\Http\Controllers\Customer\LeaveRequestController;
 use App\Http\Controllers\Customer\NotificationController;
 use App\Http\Controllers\Customer\ProfileController;
-use App\Http\Controllers\Customer\SeatChangeRequestController;
+use App\Http\Controllers\Customer\RoomChangeController;
+use App\Models\Branch;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 
 Route::get('/', function () {
-    return view('welcome');
-});
+    $branches = Schema::hasTable('branches')
+        ? Branch::with(['rooms' => fn ($query) => $query->where('status', 'available')->orderBy('monthly_rent')])
+            ->orderBy('name')
+            ->get()
+        : collect();
+
+    return view('welcome', compact('branches'));
+})->name('home');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
@@ -24,24 +34,25 @@ Route::middleware('guest')->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
-    Route::get('dashboard', DashboardController::class)->name('dashboard');
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
-    Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::prefix('customer')->name('customer.')->group(function (): void {
+        Route::get('dashboard', DashboardController::class)->name('dashboard');
+        Route::post('bookings', [BookingController::class, 'store'])->name('bookings.store');
+        Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::get('room-change/calculate', [RoomChangeController::class, 'calculate'])->name('room-change.calculate');
+        Route::post('room-change', [RoomChangeController::class, 'store'])->name('room-change.store');
+        Route::post('leave-requests', [LeaveRequestController::class, 'store'])->name('leave-requests.store');
+        Route::get('notifications/live', [NotificationController::class, 'index'])->name('notifications.live');
+        Route::post('notifications/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    });
 
-    Route::get('seat-change/calculate', [SeatChangeRequestController::class, 'calculate'])->name('seat-change.calculate');
-    Route::post('seat-change', [SeatChangeRequestController::class, 'store'])->name('seat-change.store');
-
-    Route::post('leave-applications', [LeaveApplicationController::class, 'store'])->name('leave.store');
-
-    Route::get('exit-requests/calculate', [ExitRequestController::class, 'calculate'])->name('exit.calculate');
-    Route::post('exit-requests', [ExitRequestController::class, 'store'])->name('exit.store');
-
-    Route::get('notifications/live', [NotificationController::class, 'index'])->name('notifications.live');
-    Route::post('notifications/read', [NotificationController::class, 'markRead'])->name('notifications.read');
-
-    Route::get('admin', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
-    Route::patch('admin/seat-change/{seatChangeRequest}', [AdminDashboardController::class, 'reviewSeatChange'])->name('admin.seat-change.review');
-    Route::patch('admin/leave/{leaveApplication}', [AdminDashboardController::class, 'reviewLeave'])->name('admin.leave.review');
-    Route::patch('admin/exit/{exitRequest}', [AdminDashboardController::class, 'reviewExit'])->name('admin.exit.review');
+    Route::prefix('admin')->name('admin.')->middleware('admin')->group(function (): void {
+        Route::get('dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+        Route::post('branches', [BranchController::class, 'store'])->name('branches.store');
+        Route::post('rooms', [RoomController::class, 'store'])->name('rooms.store');
+        Route::patch('bookings/{roomBooking}', [AdminDashboardController::class, 'reviewBooking'])->name('bookings.review');
+        Route::patch('room-change/{roomChangeRequest}', [AdminDashboardController::class, 'reviewRoomChange'])->name('room-change.review');
+        Route::patch('leave-requests/{leaveRequest}', [AdminDashboardController::class, 'reviewLeave'])->name('leave-requests.review');
+    });
 });

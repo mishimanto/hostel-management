@@ -11,7 +11,7 @@ class NotificationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $notifications = $request->user()
-            ->hostelNotifications()
+            ->notifications()
             ->latest()
             ->limit(10)
             ->get(['id', 'title', 'body', 'type', 'read_at', 'created_at']);
@@ -24,7 +24,7 @@ class NotificationController extends Controller
 
     public function markRead(Request $request): JsonResponse
     {
-        $request->user()->hostelNotifications()->whereNull('read_at')->update(['read_at' => now()]);
+        $request->user()->notifications()->whereNull('read_at')->update(['read_at' => now()]);
 
         return response()->json(['message' => 'Notifications marked as read.']);
     }

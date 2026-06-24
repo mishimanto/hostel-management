@@ -3,11 +3,10 @@
 namespace Database\Seeders;
 
 use App\Models\Branch;
-use App\Models\HostelNotification;
+use App\Models\Notification;
 use App\Models\Payment;
-use App\Models\ResidentProfile;
 use App\Models\Room;
-use App\Models\Seat;
+use App\Models\RoomBooking;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -18,40 +17,32 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         $mainBranch = Branch::firstOrCreate(
             ['code' => 'MAIN'],
-            [
-                'name' => 'Main Branch',
-                'phone' => '+8801711000000',
-                'address' => 'House 12, Road 4, Dhaka',
-                'rent_due_day' => 5,
-            ]
+            ['name' => 'Main Branch', 'phone' => '+8801711000000', 'address' => 'House 12, Road 4, Dhaka', 'rent_due_day' => 5]
         );
 
         $northBranch = Branch::firstOrCreate(
             ['code' => 'NORTH'],
-            [
-                'name' => 'North Branch',
-                'phone' => '+8801722000000',
-                'address' => 'Block B, Uttara, Dhaka',
-                'rent_due_day' => 7,
-            ]
+            ['name' => 'North Branch', 'phone' => '+8801722000000', 'address' => 'Block B, Uttara, Dhaka', 'rent_due_day' => 7]
         );
 
-        $room201 = Room::firstOrCreate(['branch_id' => $mainBranch->id, 'room_no' => '201'], ['capacity' => 2, 'floor' => '2nd']);
-        $room301 = Room::firstOrCreate(['branch_id' => $mainBranch->id, 'room_no' => '301'], ['capacity' => 3, 'floor' => '3rd']);
-        $room101 = Room::firstOrCreate(['branch_id' => $northBranch->id, 'room_no' => '101'], ['capacity' => 1, 'floor' => '1st']);
+        $room201 = Room::firstOrCreate(
+            ['branch_id' => $mainBranch->id, 'room_number' => '201'],
+            ['monthly_rent' => 8500, 'description' => 'Bright room with attached balcony.', 'status' => 'booked']
+        );
 
-        $seatA = Seat::firstOrCreate(['room_id' => $room201->id, 'label' => 'A'], ['monthly_rent' => 8500, 'security_deposit' => 10000, 'is_available' => false]);
-        Seat::firstOrCreate(['room_id' => $room201->id, 'label' => 'B'], ['monthly_rent' => 8500, 'security_deposit' => 10000]);
-        Seat::firstOrCreate(['room_id' => $room301->id, 'label' => 'A'], ['monthly_rent' => 6500, 'security_deposit' => 8000]);
-        Seat::firstOrCreate(['room_id' => $room301->id, 'label' => 'B'], ['monthly_rent' => 6500, 'security_deposit' => 8000]);
-        Seat::firstOrCreate(['room_id' => $room101->id, 'label' => 'A'], ['monthly_rent' => 12000, 'security_deposit' => 15000]);
+        Room::firstOrCreate(
+            ['branch_id' => $mainBranch->id, 'room_number' => '301'],
+            ['monthly_rent' => 6500, 'description' => 'Budget room near study area.', 'status' => 'available']
+        );
+
+        Room::firstOrCreate(
+            ['branch_id' => $northBranch->id, 'room_number' => '101'],
+            ['monthly_rent' => 12000, 'description' => 'Private premium room.', 'status' => 'available']
+        );
 
         $user = User::firstOrCreate([
             'email' => 'test@example.com',
@@ -72,17 +63,21 @@ class DatabaseSeeder extends Seeder
             'is_admin' => true,
         ]);
 
-        ResidentProfile::firstOrCreate(
-            ['user_id' => $user->id],
+        $booking = RoomBooking::firstOrCreate(
+            ['user_id' => $user->id, 'room_id' => $room201->id, 'status' => 'approved'],
             [
                 'branch_id' => $mainBranch->id,
-                'room_id' => $room201->id,
-                'seat_id' => $seatA->id,
-                'joined_at' => now()->subMonths(6)->toDateString(),
-                'balance' => 1500,
-                'deposit_paid' => 10000,
-                'guardian_name' => 'Guardian User',
-                'guardian_phone' => '+8801800000000',
+                'monthly_rent' => $room201->monthly_rent,
+                'requested_start_date' => now()->subMonths(2)->toDateString(),
+                'requested_end_date' => now()->addDays(12)->toDateString(),
+                'total_days' => now()->subMonths(2)->startOfDay()->diffInDays(now()->addDays(12)->startOfDay()) + 1,
+                'payable_amount' => 8500,
+                'payment_method' => 'bKash',
+                'transaction_id' => 'BKASH-DEMO-001',
+                'payment_details' => 'Demo approved payment',
+                'started_at' => now()->subMonths(2)->toDateString(),
+                'paid_until' => now()->addDays(12)->toDateString(),
+                'reviewed_at' => now(),
             ]
         );
 
@@ -90,40 +85,20 @@ class DatabaseSeeder extends Seeder
             'invoice_no' => 'INV-'.now()->format('Ym').'-001',
         ], [
             'user_id' => $user->id,
-            'seat_id' => $seatA->id,
+            'room_booking_id' => $booking->id,
+            'room_id' => $room201->id,
             'billing_month' => now()->startOfMonth()->toDateString(),
             'due_date' => Carbon::create(now()->year, now()->month, $mainBranch->rent_due_day)->toDateString(),
             'amount_due' => 8500,
-            'amount_paid' => 7000,
-            'adjustment_amount' => 1500,
+            'amount_paid' => 8500,
             'transaction_id' => 'BKASH-DEMO-001',
         ]);
 
-        Payment::firstOrCreate([
-            'invoice_no' => 'INV-'.now()->subMonth()->format('Ym').'-001',
-        ], [
-            'user_id' => $user->id,
-            'seat_id' => $seatA->id,
-            'billing_month' => now()->subMonth()->startOfMonth()->toDateString(),
-            'due_date' => now()->subMonth()->setDay($mainBranch->rent_due_day)->toDateString(),
-            'amount_due' => 8500,
-            'amount_paid' => 8500,
-            'transaction_id' => 'BKASH-DEMO-000',
-        ]);
-
-        HostelNotification::firstOrCreate([
-            'user_id' => $user->id,
-            'title' => 'Rent reminder',
-        ], [
-            'body' => 'Your monthly rent is due before the branch due date.',
-            'type' => 'rent',
-        ]);
-
-        HostelNotification::firstOrCreate([
+        Notification::firstOrCreate([
             'user_id' => $user->id,
             'title' => 'Welcome to the hostel portal',
         ], [
-            'body' => 'You can request seat changes, leaves, exits, and track payments here.',
+            'body' => 'You can manage room booking, rent history, room change and leave requests here.',
             'type' => 'announcement',
         ]);
     }

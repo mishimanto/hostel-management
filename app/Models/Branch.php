@@ -12,4 +12,9 @@ class Branch extends Model
     {
         return $this->hasMany(Room::class);
     }
+
+    public function roomBookings()
+    {
+        return $this->hasMany(RoomBooking::class);
+    }
 }

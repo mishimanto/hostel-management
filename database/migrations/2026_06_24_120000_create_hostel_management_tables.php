@@ -21,43 +21,40 @@ return new class extends Migration
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
             $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
-            $table->string('room_no');
-            $table->unsignedTinyInteger('capacity');
-            $table->string('floor')->nullable();
-            $table->timestamps();
-            $table->unique(['branch_id', 'room_no']);
-        });
-
-        Schema::create('seats', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('room_id')->constrained()->cascadeOnDelete();
-            $table->string('label');
+            $table->string('room_number');
             $table->decimal('monthly_rent', 10, 2);
-            $table->decimal('security_deposit', 10, 2)->default(0);
-            $table->boolean('is_available')->default(true);
+            $table->text('description')->nullable();
+            $table->enum('status', ['available', 'booked', 'maintenance'])->default('available');
             $table->timestamps();
-            $table->unique(['room_id', 'label']);
+            $table->unique(['branch_id', 'room_number']);
         });
 
-        Schema::create('resident_profiles', function (Blueprint $table) {
+        Schema::create('room_bookings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->unique()->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
             $table->foreignId('room_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('seat_id')->constrained()->cascadeOnDelete();
-            $table->date('joined_at');
-            $table->decimal('balance', 10, 2)->default(0);
-            $table->decimal('deposit_paid', 10, 2)->default(0);
-            $table->string('guardian_name')->nullable();
-            $table->string('guardian_phone')->nullable();
-            $table->enum('status', ['active', 'notice', 'exited'])->default('active');
+            $table->decimal('monthly_rent', 10, 2);
+            $table->date('requested_start_date');
+            $table->date('requested_end_date');
+            $table->unsignedSmallInteger('total_days');
+            $table->decimal('payable_amount', 10, 2);
+            $table->string('payment_method');
+            $table->string('transaction_id')->nullable();
+            $table->text('payment_details')->nullable();
+            $table->date('paid_until')->nullable();
+            $table->date('started_at')->nullable();
+            $table->text('note')->nullable();
+            $table->enum('status', ['pending', 'approved', 'rejected', 'cancelled'])->default('pending');
+            $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
         });
 
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('seat_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('room_booking_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('room_id')->nullable()->constrained()->nullOnDelete();
             $table->string('invoice_no')->unique();
             $table->date('billing_month');
             $table->date('due_date');
@@ -70,26 +67,29 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('seat_change_requests', function (Blueprint $table) {
+        Schema::create('room_change_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('current_seat_id')->constrained('seats')->cascadeOnDelete();
-            $table->foreignId('requested_seat_id')->constrained('seats')->cascadeOnDelete();
-            $table->enum('type', ['same_branch', 'different_branch']);
-            $table->decimal('current_rent', 10, 2);
-            $table->decimal('requested_rent', 10, 2);
-            $table->decimal('balance_before', 10, 2)->default(0);
-            $table->decimal('payable_amount', 10, 2)->default(0);
-            $table->decimal('credit_to_next_rent', 10, 2)->default(0);
+            $table->foreignId('room_booking_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('current_room_id')->constrained('rooms')->cascadeOnDelete();
+            $table->foreignId('requested_room_id')->constrained('rooms')->cascadeOnDelete();
+            $table->date('change_date');
+            $table->decimal('old_monthly_rent', 10, 2);
+            $table->decimal('new_monthly_rent', 10, 2);
+            $table->unsignedSmallInteger('remaining_paid_days')->default(0);
+            $table->decimal('additional_payable', 10, 2)->default(0);
+            $table->unsignedSmallInteger('extra_days')->default(0);
+            $table->date('new_paid_until')->nullable();
             $table->text('reason')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
             $table->timestamp('reviewed_at')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('leave_applications', function (Blueprint $table) {
+        Schema::create('leave_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('room_booking_id')->constrained()->cascadeOnDelete();
             $table->date('start_date');
             $table->date('end_date');
             $table->text('reason');
@@ -98,28 +98,12 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('exit_requests', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->date('requested_exit_date');
-            $table->unsignedSmallInteger('notice_days');
-            $table->decimal('rent_due', 10, 2)->default(0);
-            $table->decimal('deposit_adjustment', 10, 2)->default(0);
-            $table->decimal('balance_adjustment', 10, 2)->default(0);
-            $table->decimal('final_payable', 10, 2)->default(0);
-            $table->decimal('final_refundable', 10, 2)->default(0);
-            $table->text('reason')->nullable();
-            $table->enum('status', ['pending', 'approved', 'rejected', 'settled'])->default('pending');
-            $table->timestamp('reviewed_at')->nullable();
-            $table->timestamps();
-        });
-
-        Schema::create('hostel_notifications', function (Blueprint $table) {
+        Schema::create('notifications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('title');
             $table->text('body');
-            $table->enum('type', ['rent', 'seat_change', 'leave', 'exit', 'announcement', 'general'])->default('general');
+            $table->enum('type', ['rent', 'room_booking', 'room_change', 'leave', 'announcement', 'general'])->default('general');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
         });
@@ -127,13 +111,11 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('hostel_notifications');
-        Schema::dropIfExists('exit_requests');
-        Schema::dropIfExists('leave_applications');
-        Schema::dropIfExists('seat_change_requests');
+        Schema::dropIfExists('notifications');
+        Schema::dropIfExists('leave_requests');
+        Schema::dropIfExists('room_change_requests');
         Schema::dropIfExists('payments');
-        Schema::dropIfExists('resident_profiles');
-        Schema::dropIfExists('seats');
+        Schema::dropIfExists('room_bookings');
         Schema::dropIfExists('rooms');
         Schema::dropIfExists('branches');
     }

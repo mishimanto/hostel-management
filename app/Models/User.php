@@ -28,34 +28,34 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    public function residentProfile()
-    {
-        return $this->hasOne(ResidentProfile::class);
-    }
-
     public function payments()
     {
         return $this->hasMany(Payment::class);
     }
 
-    public function seatChangeRequests()
+    public function roomBookings()
     {
-        return $this->hasMany(SeatChangeRequest::class);
+        return $this->hasMany(RoomBooking::class);
     }
 
-    public function leaveApplications()
+    public function activeRoomBooking()
     {
-        return $this->hasMany(LeaveApplication::class);
+        return $this->hasOne(RoomBooking::class)->where('status', 'approved')->latestOfMany();
     }
 
-    public function exitRequests()
+    public function roomChangeRequests()
     {
-        return $this->hasMany(ExitRequest::class);
+        return $this->hasMany(RoomChangeRequest::class);
     }
 
-    public function hostelNotifications()
+    public function leaveRequests()
     {
-        return $this->hasMany(HostelNotification::class);
+        return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
     }
 
     /**
