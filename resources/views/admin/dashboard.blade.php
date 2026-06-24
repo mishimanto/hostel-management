@@ -20,7 +20,7 @@
     <div class="min-h-screen lg:grid lg:grid-cols-[280px_1fr]">
         <aside class="bg-zinc-950 text-white lg:sticky lg:top-0 lg:h-screen">
             <div class="border-b border-white/10 p-5">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3"><span class="flex h-11 w-11 items-center justify-center rounded-lg bg-teal-500 font-bold text-zinc-950">MH</span><span><span class="block font-semibold">Admin Panel</span><span class="block text-xs text-zinc-400">Room operations</span></span></a>
+                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3"><span><span class="block font-semibold text-xl">Admin Panel</span></span></a>
             </div>
             <nav class="grid gap-1 px-3 py-4 text-sm">
                 @foreach ([['#overview', 'Dashboard', 'layout-dashboard'], ['#branches', 'Branches', 'building-2'], ['#rooms', 'Rooms', 'door-open'], ['#bookings', 'Bookings', 'book-open-check'], ['#changes', 'Room Changes', 'replace'], ['#leaves', 'Leaves', 'calendar-days']] as [$href, $label, $icon])
@@ -36,7 +36,7 @@
         <div class="flex min-h-screen flex-col">
             <header class="sticky top-0 z-30 border-b border-zinc-200 bg-white/95 backdrop-blur">
                 <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-                    <div><p class="text-sm font-medium text-teal-700">Mini Hostel</p><h1 class="text-2xl font-bold">Admin Dashboard</h1></div>
+                    <div><h1 class="text-2xl font-bold">Dashboard</h1></div>
                     <a href="{{ route('home') }}" class="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-100">Front page</a>
                 </div>
             </header>

@@ -27,8 +27,8 @@
     <header class="border-b border-zinc-200 bg-white">
         <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <a href="{{ route('home') }}" class="flex items-center gap-3">
-                <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-teal-600 font-bold text-white">MH</span>
-                <span><span class="block font-semibold">Customer Portal</span><span class="block text-xs text-zinc-500">{{ $user->name }}</span></span>
+                
+                <span class="block text-xl font-bold text-zinc-500">{{ $user->name }}</span></span>
             </a>
             <div class="flex items-center gap-2">
                 @if ($user->is_admin)
@@ -81,7 +81,7 @@
                 <div class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
                     <div class="rounded-lg border border-zinc-200 bg-white p-5 shadow-sm">
                         <h2 class="text-lg font-semibold">Book a room</h2>
-                        <p class="mt-1 text-sm text-zinc-500">Choose an available room. Admin approval is required.</p>
+                        
                         <form method="POST" action="{{ route('customer.bookings.store') }}" class="mt-4 space-y-3">
                             @csrf
                             <select name="room_id" class="w-full rounded-md border border-zinc-300 px-3 py-2" required>
