@@ -1,58 +1,500 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Mini Hostel Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Project Information
 
-## About Laravel
+Mini Hostel Management System is a Laravel based web application for managing hostel room booking from both customer and admin sides.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+The system is room based. There are no seats and no room types. A customer books an entire room. Admin checks the submitted payment details and approves or rejects the booking.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Technology Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Laravel
+- MySQL
+- Laravel Breeze style authentication
+- Blade templates
+- Tailwind CSS
+- Vite
+- AJAX for live customer actions
+- SweetAlert2 and toast messages
+- Lucide icons
 
-## Learning Laravel
+## User Roles
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Customer
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Customers can:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+- Register and login
+- View available rooms from the landing page
+- Submit room booking with payment details
+- View profile and current booking
+- View rent/payment history
+- Request room change for an approved booking
+- Submit leave request for a selected booking
+- View notifications
 
-## Agentic Development
+### Admin
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Admins can:
 
-```bash
-composer require laravel/boost --dev
+- Login to admin dashboard
+- Manage branches
+- Manage rooms
+- Approve or reject room bookings
+- Approve or reject room change requests
+- Approve or reject leave requests
+- View dashboard statistics
 
-php artisan boost:install
+Admin access is controlled by the `is_admin` field and `admin` middleware.
+
+## Main Project Structure
+
+```text
+app/
+  Http/
+    Controllers/
+      Admin/
+        BranchController.php
+        DashboardController.php
+        RoomController.php
+      Auth/
+        AuthenticatedSessionController.php
+        RegisteredUserController.php
+      Customer/
+        BookingController.php
+        DashboardController.php
+        LeaveRequestController.php
+        NotificationController.php
+        ProfileController.php
+        RoomChangeController.php
+    Middleware/
+      EnsureAdmin.php
+  Models/
+    Branch.php
+    LeaveRequest.php
+    Notification.php
+    Payment.php
+    Room.php
+    RoomBooking.php
+    RoomChangeRequest.php
+    User.php
+  Services/
+    RoomChangeService.php
+
+database/
+  migrations/
+    2026_06_24_120000_create_hostel_management_tables.php
+    2026_06_24_130000_add_is_admin_to_users_table.php
+    2026_06_24_150000_cleanup_legacy_seat_exit_tables.php
+  seeders/
+    DatabaseSeeder.php
+
+resources/
+  views/
+    admin/
+      dashboard.blade.php
+    auth/
+      login.blade.php
+      register.blade.php
+    customer/
+      dashboard.blade.php
+    welcome.blade.php
+  js/
+    app.js
+  css/
+    app.css
+
+routes/
+  web.php
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## Database Schema
 
-## Contributing
+### users
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Laravel auth users table with extra hostel fields.
 
-## Code of Conduct
+Important columns:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- `name`
+- `email`
+- `password`
+- `phone`
+- `nid_number`
+- `address`
+- `is_admin`
 
-## Security Vulnerabilities
+Relationships:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+- User has many room bookings
+- User has one active approved room booking
+- User has many payments
+- User has many room change requests
+- User has many leave requests
+- User has many notifications
 
-## License
+### branches
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Stores hostel branch information.
+
+Columns:
+
+- `id`
+- `name`
+- `code`
+- `phone`
+- `address`
+- `rent_due_day`
+- `created_at`
+- `updated_at`
+
+
+### rooms
+
+Stores room information.
+
+Columns:
+
+- `id`
+- `branch_id`
+- `room_number`
+- `monthly_rent`
+- `description`
+- `status`
+- `created_at`
+- `updated_at`
+
+Room statuses:
+
+- `available`
+- `booked`
+- `maintenance`
+
+Rules:
+
+- One room can have only one active approved booking
+- Room number is unique inside a branch
+
+### room_bookings
+
+Stores customer room booking requests.
+
+Columns:
+
+- `id`
+- `user_id`
+- `branch_id`
+- `room_id`
+- `monthly_rent`
+- `requested_start_date`
+- `requested_end_date`
+- `total_days`
+- `payable_amount`
+- `payment_method`
+- `transaction_id`
+- `payment_details`
+- `paid_until`
+- `started_at`
+- `note`
+- `status`
+- `reviewed_at`
+- `created_at`
+- `updated_at`
+
+Statuses:
+
+- `pending`
+- `approved`
+- `rejected`
+- `cancelled`
+
+How payment is calculated:
+
+```text
+daily rent = monthly rent / 30
+total days = requested end date - requested start date + 1
+payable amount = daily rent * total days
+```
+
+### payments
+
+Stores rent/payment history.
+
+Columns:
+
+- `id`
+- `user_id`
+- `room_booking_id`
+- `room_id`
+- `invoice_no`
+- `billing_month`
+- `due_date`
+- `amount_due`
+- `amount_paid`
+- `adjustment_amount`
+- `status`
+- `transaction_id`
+- `paid_at`
+- `created_at`
+- `updated_at`
+
+Statuses:
+
+- `due`
+- `partial`
+- `paid`
+
+Payment status is automatically handled by comparing `amount_paid` with `amount_due`.
+
+### room_change_requests
+
+Stores room change requests for an existing approved booking.
+
+Columns:
+
+- `id`
+- `user_id`
+- `room_booking_id`
+- `current_room_id`
+- `requested_room_id`
+- `change_date`
+- `old_monthly_rent`
+- `new_monthly_rent`
+- `remaining_paid_days`
+- `additional_payable`
+- `extra_days`
+- `new_paid_until`
+- `reason`
+- `status`
+- `reviewed_at`
+- `created_at`
+- `updated_at`
+
+Statuses:
+
+- `pending`
+- `approved`
+- `rejected`
+
+Room change date is not selected by the customer. It is generated by the backend at request time.
+
+### leave_requests
+
+Stores customer leave requests.
+
+Columns:
+
+- `id`
+- `user_id`
+- `room_booking_id`
+- `start_date`
+- `end_date`
+- `reason`
+- `status`
+- `reviewed_at`
+- `created_at`
+- `updated_at`
+
+Statuses:
+
+- `pending`
+- `approved`
+- `rejected`
+
+Current UI uses a single `leave_date`. For database compatibility, the selected leave date is saved into both `start_date` and `end_date`.
+
+Leave date must be inside the selected booking date range.
+
+### notifications
+
+Stores customer notifications.
+
+Columns:
+
+- `id`
+- `user_id`
+- `title`
+- `body`
+- `type`
+- `read_at`
+- `created_at`
+- `updated_at`
+
+Notification types:
+
+- `rent`
+- `room_booking`
+- `room_change`
+- `leave`
+- `announcement`
+- `general`
+
+## Routes Summary
+
+### Public
+
+- `GET /`
+  - Landing page with available rooms
+
+- `GET /register`
+- `POST /register`
+- `GET /login`
+- `POST /login`
+
+### Customer Routes
+
+All customer routes require authentication.
+
+- `GET /customer/dashboard`
+- `POST /customer/bookings`
+- `PATCH /customer/profile`
+- `GET /customer/room-change/calculate`
+- `POST /customer/room-change`
+- `POST /customer/leave-requests`
+- `GET /customer/notifications/live`
+- `POST /customer/notifications/read`
+
+### Admin Routes
+
+All admin routes require authentication and admin middleware.
+
+- `GET /admin/dashboard`
+- `POST /admin/branches`
+- `POST /admin/rooms`
+- `PATCH /admin/bookings/{roomBooking}`
+- `PATCH /admin/room-change/{roomChangeRequest}`
+- `PATCH /admin/leave-requests/{leaveRequest}`
+
+## How The System Works
+
+### 1. Registration and Login
+
+Users register from the auth page. By default, registered users are customers. Admin users are identified by `is_admin = true`.
+
+Seeded demo accounts:
+
+```text
+Admin:
+email: admin@example.com
+password: password
+
+Customer:
+email: test@example.com
+password: password
+```
+
+### 2. Room Booking Flow
+
+1. Customer selects an available room.
+2. Customer selects booking start date and end date.
+3. Customer submits payment method, transaction ID, and payment details.
+4. System calculates payable amount using fixed 30-day month.
+5. Booking is saved as `pending`.
+6. Admin reviews payment details.
+7. If admin approves:
+   - Booking status becomes `approved`
+   - Room status becomes `booked`
+   - `started_at` is set from requested start date
+   - `paid_until` is set from requested end date
+   - Payment history is created
+   - Customer receives notification
+8. If admin rejects:
+   - Booking status becomes `rejected`
+   - Room remains available
+   - Customer receives notification
+
+### 3. Customer Dashboard
+
+Customer dashboard is divided into sections:
+
+- Overview
+- Booking
+- Profile
+- Rent
+- Requests
+- Notifications
+
+The dashboard shows current approved booking, payment history, request history, and live notifications.
+
+### 4. Room Change Flow
+
+Room change works against an already approved booking.
+
+1. Customer selects one approved booking.
+2. Customer selects an available room.
+3. System calculates adjustment preview through AJAX.
+4. Customer submits room change request.
+5. Admin approves or rejects.
+6. If approved:
+   - Old room becomes `available`
+   - New room becomes `booked`
+   - Same booking is updated with the new room
+   - Monthly rent is updated
+   - Paid-until date is recalculated
+
+Room change calculation uses fixed 30-day month.
+
+```text
+old daily rent = old monthly rent / 30
+new daily rent = new monthly rent / 30
+remaining paid days = paid until - change date
+```
+
+If the new room is more expensive:
+
+```text
+additional payable = (new daily rent - old daily rent) * remaining paid days
+```
+
+If the new room is cheaper:
+
+```text
+remaining value = remaining paid days * old daily rent
+new covered days = floor(remaining value / new daily rent)
+extra days = new covered days - remaining paid days
+new paid until = change date + new covered days
+```
+
+No cash refund is given for cheaper room. The value is converted into extra staying days.
+
+### 5. Leave Request Flow
+
+Leave request works against an approved booking.
+
+1. Customer selects an approved booking.
+2. System sets the allowed leave date range from that booking.
+3. Customer selects one leave date.
+4. Backend validates that the leave date is inside the booking date range.
+5. Request is saved as `pending`.
+6. Admin approves or rejects it.
+7. Customer receives notification.
+
+Leave does not end the booking. Rent continues and the room remains reserved.
+
+### 6. Notifications
+
+Notifications are created for important actions:
+
+- Room booking submitted/approved/rejected
+- Room change submitted/approved/rejected
+- Leave request submitted/approved/rejected
+- General announcements
+
+Customer dashboard polls notification data using AJAX.
+
+
+## How to run
+
+```bash
+git clone https://github.com/mishimanto/hostel-management.git
+
+cd hotel-management
+
+env.example -> .env
+php artisan key:generate
+composer install 
+php artisan migrate --seed
+npm install 
+npm run build 
+
+```
